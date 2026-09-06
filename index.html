@@ -442,24 +442,11 @@
   }
 </style>
 
-<!-- Meta Pixel Code -->
-<script>
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1613139857177875');
-fbq('track', 'PageView');
-</script>
+<!-- Meta Pixel is loaded further down by the tracking script (loadMetaPixel),
+     so there's no separate init here — avoids a double PageView fire. -->
 <noscript><img height="1" width="1" style="display:none"
 src="https://www.facebook.com/tr?id=1613139857177875&ev=PageView&noscript=1"
 /></noscript>
-<!-- End Meta Pixel Code -->
-
 
 </head>
 <body>
@@ -573,7 +560,7 @@ src="https://www.facebook.com/tr?id=1613139857177875&ev=PageView&noscript=1"
 
       <!-- CTA -->
       <div class="cta-block a5">
-        <a href="https://t.me/+nIK6g6nB7LkyNmRh" rel="noopener" id="ctaBtn" class="cta-btn">
+        <a href="https://t.me/+nIK6g6nB7LkyNmRh" rel="noopener" id="ctaBtn" class="cta-btn join-link">
           <span class="cmd-prefix">$&nbsp;</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0a12 12 0 00-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.96 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
           <span class="text-10">టెలిగ్రామ్ చానల్‌లో చేరండి</span>
@@ -674,84 +661,193 @@ function updateClock() {
 }
 setInterval(updateClock, 300);
 updateClock();
+</script>
 
-const ctaBtn = document.getElementById('ctaBtn');
-const fallbackLink = document.getElementById('fallbackLink');
-let LeadFired = false;
+<!-- ===================== TRACKING SCRIPT (from gtm.html) ===================== -->
+<script>
+(() => {
+  'use strict';
 
-// === SILENT QUALITY SIGNALS ===
-// Button turant clickable rehta hai (koi delay/disabled state nahi — speed
-// pe zero impact), lekin background mein genuine vs impulsive/bot click
-// classify hota hai. Genuine click "Lead" banta hai, bahut jaldi/bina
-// interaction wala click "LowQualityClick" mein jata hai — isse Meta ko
-// cleaner signal milta hai, algorithm behtar audience target karta hai.
-const pageLoadTime = Date.now();
-let hasScrolled = false;
-let hasMouseMoved = false;
-window.addEventListener('scroll', () => { hasScrolled = true; }, { once: true });
-document.addEventListener('mousemove', () => { hasMouseMoved = true; }, { once: true });
-document.addEventListener('touchstart', () => { hasMouseMoved = true; }, { once: true });
+  const CONFIG = Object.freeze({
+    pixelId: '1613139857177875',
+    telegramUrl: 'https://t.me/+nIK6g6nB7LkyNmRh',
+    pageViewDelayMs: 3000,
+    passiveReaderDelayMs: 8000,
+    minimumClickTimeMs: 1000,
+    trackedRedirectDelayMs: 700,
+    fastRedirectDelayMs: 50,
+    pageViewSessionKey: 'munaaf_qualified_page_view'
+  });
 
-function isLikelyRealUser() {
-  const timeOnPage = Date.now() - pageLoadTime;
-  // Fast threshold (1.2s) — jaanbujh kar strict nahi rakha, kyunki page
-  // already 75% convert kar raha hai, matlab traffic quality achhi hai.
-  // Zyada strict gating genuine fast-clickers ko bhi filter kar degi.
-  if (timeOnPage < 1200) return false;
-  if (!hasScrolled && !hasMouseMoved) return false;
-  return true;
-}
+  const pageOpenedAt = Date.now();
 
-function isProbablyBot() {
-  if (navigator.webdriver) return true;
-  if (/bot|crawl|spider|slurp|headless/i.test(navigator.userAgent)) return true;
-  return false;
-}
+  let pageViewTracked = false;
+  let leadTracked = false;
+  let navigationStarted = false;
+  let humanInteractionDetected = false;
 
-if (fallbackLink) fallbackLink.href = ctaBtn.href;
+  function loadMetaPixel() {
+    const pixelGuardKey = `__munaafPixelInitialized_${CONFIG.pixelId}`;
 
-ctaBtn.addEventListener('click', function (e) {
-  e.preventDefault();
-  const destination = this.href;
+    !function (f, b, e, v, n, t, s) {
+      if (f.fbq) return;
+      n = f.fbq = function () {
+        n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+      };
+      if (!f._fbq) f._fbq = n;
+      n.push = n;
+      n.loaded = true;
+      n.version = '2.0';
+      n.queue = [];
+      t = b.createElement(e);
+      t.async = true;
+      t.src = v;
+      s = b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t, s);
+    }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
 
-  if (LeadFired) {
-    window.location.href = destination;
-    return;
+    if (window[pixelGuardKey]) return;
+
+    let pixelAlreadyRegistered = false;
+    try {
+      if (typeof fbq.getState === 'function') {
+        const pixelState = fbq.getState();
+        pixelAlreadyRegistered = pixelState.pixels.some((pixel) =>
+          String(pixel.id) === String(CONFIG.pixelId)
+        );
+      }
+    } catch (error) {
+      pixelAlreadyRegistered = false;
+    }
+
+    if (!pixelAlreadyRegistered) {
+      fbq('init', CONFIG.pixelId);
+    }
+
+    window[pixelGuardKey] = true;
   }
-  LeadFired = true;
 
-  if (isProbablyBot()) {
-    // Bot detect hua — koi tracking event nahi, seedha redirect
-    window.location.href = destination;
-    return;
-  }
-
-  const eventId = 'Lead_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-
-  if (typeof fbq === 'function') {
-    if (isLikelyRealUser()) {
-      fbq('track', 'Lead', {
-        content_name: 'Trader Munaaf Skill Channel',
-        content_category: 'Skill Development'
-      }, { eventID: eventId });
-    } else {
-      fbq('trackCustom', 'LowQualityClick', { eventID: eventId });
+  function sessionPageViewExists() {
+    try {
+      return sessionStorage.getItem(CONFIG.pageViewSessionKey) === 'true';
+    } catch (error) {
+      return false;
     }
   }
 
-  // 200ms delay — mobile/in-app browsers (FB/IG) mein turant navigation se
-  // fbq ka beacon beech mein cancel ho jaata hai, event miss ho sakta hai.
-  // Ye delay usse fix karta hai — beacon complete hone ka time milta hai.
-  setTimeout(function () {
-    window.location.href = destination;
-  }, 200);
+  function saveSessionPageView() {
+    try {
+      sessionStorage.setItem(CONFIG.pageViewSessionKey, 'true');
+    } catch (error) {
+      // ignore
+    }
+  }
 
-  // Safety net: agar kisi wajah se redirect na ho, 1.3s baad manual
-  // fallback link dikha do
-  setTimeout(function () {
-    if (fallbackLink) fallbackLink.classList.add('show');
-  }, 1300);
-});
+  function automationDetected() {
+    return navigator.webdriver === true;
+  }
+
+  function tryQualifiedPageView() {
+    const timeOnPageMs = Date.now() - pageOpenedAt;
+    const interactionQualified =
+      humanInteractionDetected && timeOnPageMs >= CONFIG.pageViewDelayMs;
+    const passiveReaderQualified = timeOnPageMs >= CONFIG.passiveReaderDelayMs;
+
+    const canTrack =
+      !pageViewTracked &&
+      !sessionPageViewExists() &&
+      !automationDetected() &&
+      (interactionQualified || passiveReaderQualified) &&
+      document.visibilityState === 'visible' &&
+      document.hasFocus() &&
+      typeof window.fbq === 'function';
+
+    if (!canTrack) return;
+
+    fbq('track', 'PageView', {
+      qualified_view: true,
+      human_interaction: humanInteractionDetected,
+      qualification: interactionQualified ? 'interaction_3_seconds' : 'focused_8_seconds',
+      time_on_page: Math.round(timeOnPageMs / 1000)
+    });
+
+    pageViewTracked = true;
+    saveSessionPageView();
+  }
+
+  function recordHumanInteraction(event) {
+    if (!event.isTrusted || humanInteractionDetected) return;
+    humanInteractionDetected = true;
+    tryQualifiedPageView();
+  }
+
+  function initializeVisitorQualification() {
+    ['pointerdown', 'touchstart', 'keydown', 'scroll', 'mousemove'].forEach((eventName) => {
+      window.addEventListener(eventName, recordHumanInteraction, { passive: true, once: true });
+    });
+
+    window.setTimeout(tryQualifiedPageView, CONFIG.pageViewDelayMs);
+    window.setTimeout(tryQualifiedPageView, CONFIG.passiveReaderDelayMs);
+  }
+
+  function handleTelegramClick(event) {
+    event.preventDefault();
+
+    if (navigationStarted) return;
+    navigationStarted = true;
+
+    const timeOnPageMs = Date.now() - pageOpenedAt;
+    const isQualifiedClick =
+      event.isTrusted &&
+      !automationDetected() &&
+      timeOnPageMs >= CONFIG.minimumClickTimeMs;
+
+    if (isQualifiedClick && !leadTracked && typeof window.fbq === 'function') {
+      fbq('track', 'Lead', {
+        value: 0,
+        currency: 'INR',
+        destination: 'Telegram',
+        time_on_page: Math.round(timeOnPageMs / 1000)
+      });
+      leadTracked = true;
+    }
+
+    const redirectDelay = isQualifiedClick
+      ? CONFIG.trackedRedirectDelayMs
+      : CONFIG.fastRedirectDelayMs;
+
+    window.setTimeout(() => {
+      window.location.assign(CONFIG.telegramUrl);
+    }, redirectDelay);
+
+    // Safety net: agar kisi wajah se redirect na ho, thodi der baad
+    // manual fallback link dikha do (design mein already .show class hai)
+    window.setTimeout(() => {
+      const fallbackLink = document.getElementById('fallbackLink');
+      if (fallbackLink) fallbackLink.classList.add('show');
+    }, redirectDelay + 600);
+  }
+
+  function initializeTelegramButtons() {
+    const buttons = document.querySelectorAll('.join-link, .jnBtn');
+    buttons.forEach((button) => {
+      button.href = CONFIG.telegramUrl;
+      button.addEventListener('click', handleTelegramClick);
+    });
+
+    const fallbackLink = document.getElementById('fallbackLink');
+    if (fallbackLink) fallbackLink.href = CONFIG.telegramUrl;
+  }
+
+  loadMetaPixel();
+  initializeVisitorQualification();
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeTelegramButtons, { once: true });
+  } else {
+    initializeTelegramButtons();
+  }
+})();
 </script>
 
 </body>
